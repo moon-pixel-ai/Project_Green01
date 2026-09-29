@@ -4539,7 +4539,7 @@ async function labDoorOpen(n){ const d=n===1?LAB.d1:n===2?LAB.d2:LAB.d3; S.flags
 const HEART={boxes:[],seq:[],drawing:false,pts:[],n:1,expect:null,start:null};
 const HB={TL:{x:150,y:60,w:110,h:110},TR:{x:440,y:60,w:110,h:110},BL:{x:80,y:230,w:220,h:200},BR:{x:400,y:230,w:220,h:200}}; // 캔버스 700x520 기준
 const HEART_ANS={1:{start:'TR',seq:['TR','BR','TL','BL','TR']},2:{start:'BL',seq:['BL','TR','BR','TL','BL']}};
-function heartDraw(){ const c=$('#heartcv'),g=c.getContext('2d'); g.fillStyle='#15161a'; g.fillRect(0,0,c.width,c.height); g.fillStyle='rgba(255,255,255,.7)'; g.font='700 30px monospace'; g.textAlign='right'; g.textBaseline='alphabetic'; g.fillText('HINT: 심장',c.width-20,c.height-16); g.textAlign='left';
+function heartDraw(){ const c=$('#heartcv'),g=c.getContext('2d'); g.fillStyle='#15161a'; g.fillRect(0,0,c.width,c.height); g.fillStyle='rgba(255,255,255,.7)'; g.font='700 30px monospace'; g.textAlign='right'; g.textBaseline='alphabetic'; g.fillText('HINT: 심장에서 혈액의 순환은?',c.width-20,c.height-16); g.textAlign='left';
   for(const k in HB){ const b=HB[k]; const isStart=k===HEART.start; g.lineWidth=9; g.strokeStyle='#e8e8e8'; g.lineJoin='round'; g.fillStyle=isStart?'#e5262b':'#1d1e23'; g.beginPath(); g.rect(b.x,b.y,b.w,b.h); g.fill(); g.stroke();
     if(isStart){ g.fillStyle='#111'; g.font='700 30px sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('start',b.x+b.w/2,b.y+b.h/2); } }
   if(HEART.pts.length>1){ g.strokeStyle='rgba(80,110,255,.95)'; g.lineWidth=12; g.lineCap='round'; g.lineJoin='round'; g.beginPath(); g.moveTo(HEART.pts[0][0],HEART.pts[0][1]); for(const p of HEART.pts) g.lineTo(p[0],p[1]); g.stroke(); } }
@@ -5001,7 +5001,7 @@ function tickO2(dt){ if(!S.flags.hasMask||S.over||S.flags.escaped) return;
   if(O2.has){ const before=O2.left; O2.left-=dt; $('#maskov i').textContent='O₂ 캡슐 작동 중';
     if(before>30&&O2.left<=30&&!O2.warned30){ O2.warned30=true; toast('O₂ 30초 남음 — 충전기를 찾자',2200); }
     if(before>5&&O2.left<=5&&!O2.warned){ O2.warned=true; toast('!!  O₂ 5초 남음',2500); AUDIO.alarm(); }
-    if(O2.left<=0){ O2.left=0; maskFail(); if(NEPH.on){ ov('#neph',false); NEPH.on=false; } toast('!!  캡슐이 비었다 — 숨이 새어 나간다',2600); O2.huntAt=performance.now()+5000; } }
+    if(O2.left<=0){ O2.left=0; maskFail(); if(NEPH.on){ ov('#neph',false); NEPH.on=false; } if(inLab2()&&LAB2.tank&&CRE3.state==='none'){ breakout(); } else { toast('!!  캡슐이 비었다 — 숨이 새어 나간다',2600); O2.huntAt=performance.now()+5000; } } }
   // 소진 5초 뒤 : 어디에 있든 감염체가 숨을 맡고 온다
   if(O2.huntAt&&performance.now()>=O2.huntAt&&!S.over){ O2.huntAt=null; if(P.y<-3) o2Hunt('boss'); else if(inLab2()&&LAB2.tank&&CRE3.state==='none') breakout(); else o2Hunt('lab3'); }
   o2Hud(); }
@@ -5012,20 +5012,20 @@ async function breakout(){ S.flags.o2Death=true; CRE3.state='rise'; CRE3.t=0; AU
   if(LAB2.cover) LAB2.cover.visible=false;
   // 유리 파편
   const t=LAB2.tank; const m=mat({color:0xbfe8d8,transparent:true,opacity:.6,side:THREE.DoubleSide}); for(let i=0;i<22;i++){ const s=plane(0.12+Math.random()*0.2,0.12+Math.random()*0.2,m,t.position.x+(Math.random()-.5)*0.8,LAB2.tankY+0.5,t.position.z-0.9+Math.random()*1.8); s.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3); s.userData.v=[(Math.random()-.5)*3,1.5+Math.random()*3,(Math.random()-.5)*3]; s.userData.r=[(Math.random()-.5)*8,(Math.random()-.5)*8,(Math.random()-.5)*8]; WORLD.add(s); CRE3.shards.push(s); }
-  toast('!!  배양통이 깨졌다',2000); mono(['…!!','산소가 떨어진 순간 — 통 안의 그게, 내 숨을 맡았다.']); }
+  AUDIO.screech(); }
 function tickCre3(dt){ if(CRE3.state==='none'||S.flags.escaped) return; const t=LAB2.tank; if(!t) return; CRE3.t+=dt;
   // 파편
   for(const s of CRE3.shards){ const v=s.userData.v; v[1]-=9*dt; s.position.x+=v[0]*dt; s.position.y+=v[1]*dt; s.position.z+=v[2]*dt; s.rotation.x+=s.userData.r[0]*dt; s.rotation.z+=s.userData.r[2]*dt; if(s.position.y<LAB2.fy+0.02){ s.position.y=LAB2.fy+0.02; v[0]=v[2]=0; v[1]=0; s.rotation.set(-Math.PI/2,0,s.rotation.z); } }
   const dx=P.x-t.position.x, dz=P.z-t.position.z, d=Math.hypot(dx,dz), face=Math.atan2(dx,dz);
-  if(CRE3.state==='rise'){ const k=Math.min(1,CRE3.t/1.6); const e=k<.5?2*k*k:-1+(4-2*k)*k; // 누운 → 선 자세
+  if(CRE3.state==='rise'){ const k=Math.min(1,CRE3.t/(CRE3.lure?1.6:0.9)); const e=k<.5?2*k*k:-1+(4-2*k)*k; // 누운 → 선 자세
     t.rotation.x=-Math.PI/2*(1-e); t.rotation.z=0.05*(1-e); t.position.y=LAB2.tankY+(LAB2.fy+0.11*LAB2.s-LAB2.tankY)*e; t.rotation.y=face*e; if(k>=1){ CRE3.state=CRE3.lure?'toModel':'stare'; CRE3.t=0; AUDIO.screech(); } }
   else if(CRE3.state==='toModel'){ const m=LAB2.lureSpot; const mx=m.x-0.8, mz=m.z+0.9; const ddx=mx-t.position.x, ddz=mz-t.position.z, dd=Math.hypot(ddx,ddz); t.rotation.y=Math.atan2(ddx,ddz); if(dd>0.2){ t.position.x+=ddx/dd*2.4*dt; t.position.z+=ddz/dd*2.4*dt; } const fy=floorAt(t.position.x,t.position.z); t.position.y=Math.max(fy,t.position.y-4*dt)+Math.abs(Math.sin(CRE3.t*11))*0.08; if(dd<=0.2){ CRE3.state='atModel'; } }
   else if(CRE3.state==='atModel'){ t.rotation.y+=dt*0.3; t.position.y=floorAt(t.position.x,t.position.z)+Math.abs(Math.sin(CRE3.t*3))*0.03; if(d<1.5&&Math.abs(P.y-t.position.y)<2){ CRE3.state='kill'; jumpscare(t,'boss',0.8); } }
-  else if(CRE3.state==='stare'){ t.rotation.y=face; t.position.y=LAB2.fy+0.11*LAB2.s+Math.sin(CRE3.t*9)*0.01; if(CRE3.t>1.1){ CRE3.state='charge'; CRE3.t=0; AUDIO.growl(); AUDIO.bang(); shake(0.12,0.5); toast('!!  도망쳐',1500); } }
-  else if(CRE3.state==='charge'){ t.rotation.y=face; const sp=3.4; if(d>0.55){ let nx=t.position.x+dx/d*sp*dt, nz=t.position.z+dz/d*sp*dt; t.position.x=nx; t.position.z=nz; } const fy=floorAt(t.position.x,t.position.z); t.position.y=Math.max(fy,t.position.y-4*dt)+Math.abs(Math.sin(CRE3.t*13))*0.1;
-    if(d<=1.1){ CRE3.state='kill'; jumpscare(t,'infected2',0.8); } }
+  else if(CRE3.state==='stare'){ t.rotation.y=face; t.position.y=LAB2.fy+0.11*LAB2.s+Math.sin(CRE3.t*9)*0.01; if(CRE3.t>0.35){ CRE3.state='charge'; CRE3.t=0; AUDIO.growl(); AUDIO.bang(); shake(0.12,0.5); toast('!!  도망쳐',1500); } }
+  else if(CRE3.state==='charge'){ t.rotation.y=face; const sp=4.6; if(d>0.55){ let nx=t.position.x+dx/d*sp*dt, nz=t.position.z+dz/d*sp*dt; t.position.x=nx; t.position.z=nz; } const fy=floorAt(t.position.x,t.position.z); t.position.y=Math.max(fy,t.position.y-4*dt)+Math.abs(Math.sin(CRE3.t*13))*0.1;
+    if(d<=1.1){ CRE3.state='kill'; jumpscare(t,'infected2',0.62,0.92); } }
   else if(CRE3.state==='hunt'){ t.rotation.x=0; t.rotation.z=0; t.rotation.y=face; const sp=CRE3.sp||3.4; if(d>0.5){ t.position.x+=dx/d*sp*dt; t.position.z+=dz/d*sp*dt; } t.position.y=d<8?P.y:t.position.y; if(LAB2.cover) LAB2.cover.visible=false;
-    if(d<=1.6&&!JS.on){ CRE3.state='kill'; jumpscare(t,S.flags.lured?'boss':'infected2',0.8); } } }
+    if(d<=1.6&&!JS.on){ CRE3.state='kill'; jumpscare(t,S.flags.lured?'boss':'infected2',0.62,0.92); } } }
 function resetCre3(){ if(CRE3.lure) return; if(LAB.d4&&LAB.d4.burst){ LAB.d4.burst=false; LAB.d4.open=0; LAB.d4.closing=false; } CRE3.state='none'; CRE3.t=0; for(const s of CRE3.shards) WORLD.remove(s); CRE3.shards=[]; const t=LAB2.tank; if(t){ t.rotation.set(-Math.PI/2,0,0.05); t.position.set(LAB2.tankX,LAB2.tankY,LAB2.tankZ); } if(LAB2.cover) LAB2.cover.visible=true; }
 
 /* ---- 백신 일지 : 날짜마다 한 장씩 ---- */
@@ -5468,12 +5468,15 @@ function tickWalkers(dt){ for(const c of WALKERS){ const r=c.root; if(!r) contin
 
 /* 점프스케어 : 잡힐 때는 반드시 눈앞에서 — 불이 번쩍 켜지고, 감염체가 바로 앞에 선다 */
 const JS={on:false,light:null};
-function jumpscare(root,kind,dist=1.05,aim=0.85){ if(S.over||JS.on||!root) return; JS.on=true; P.free=false; setNV(false); const fx=-Math.sin(P.yaw), fz=-Math.cos(P.yaw);
-  root.visible=true; root.rotation.x=0; root.rotation.z=0; root.position.set(P.x+fx*dist,P.y,P.z+fz*dist); root.rotation.y=Math.atan2(-fx,-fz); root.children.forEach(c=>{ c.rotation.x=0; });
-  root.updateMatrixWorld(true); const b=new THREE.Box3().setFromObject(root); const headY=b.min.y+(b.max.y-b.min.y)*aim; P.pitch=clamp(Math.atan2(headY-(P.y+P.eye),dist),-0.3,0.7);
-  if(!JS.light){ JS.light=new THREE.PointLight(0xfff4e8,0,7,1.2); scene.add(JS.light); } JS.light.position.set(P.x+fx*0.3,P.y+P.eye+0.4,P.z+fz*0.3); JS.light.intensity=3.4;
-  if(BASE.amb&&P.y<-3) BASE.amb.intensity=0.8; AUDIO.screech(); AUDIO.bang(); shake(0.28,0.8);
-  setTimeout(()=>{ JS.light.intensity=0; JS.on=false; gameOver(kind); },JS.delay||800); }
+function jumpscare(root,kind,dist=1.05,aim=0.85){ if(S.over||JS.on||!root) return; JS.on=true; P.free=false; P.vx=P.vz=0; setNV(false); monoAbort(); document.querySelectorAll('.ov.on:not(#start)').forEach(el=>el.classList.remove('on')); const fx=-Math.sin(P.yaw), fz=-Math.cos(P.yaw);
+  root.visible=true; root.rotation.x=0; root.rotation.z=0; root.rotation.y=Math.atan2(-fx,-fz); root.children.forEach(c=>{ c.rotation.x=0; });
+  JS.root=root; JS.fx=fx; JS.fz=fz; JS.d0=dist*2.6; JS.d1=dist; JS.t=0; JS.dur=0.22; JS.y=P.y; root.position.set(P.x+fx*JS.d0,P.y,P.z+fz*JS.d0);
+  root.updateMatrixWorld(true); const b=new THREE.Box3().setFromObject(root); const headY=b.min.y+(b.max.y-b.min.y)*aim; JS.pitch0=P.pitch; JS.pitch1=clamp(Math.atan2(headY-(P.y+P.eye),dist),-0.3,0.7); JS.yaw=P.yaw;
+  if(!JS.light){ JS.light=new THREE.PointLight(0xfff4e8,0,7,1.2); scene.add(JS.light); } JS.light.position.set(P.x+fx*0.3,P.y+P.eye+0.4,P.z+fz*0.3); JS.light.intensity=4.2;
+  if(BASE.amb&&P.y<-3) BASE.amb.intensity=0.8; AUDIO.screech(); AUDIO.bang(); shake(0.34,1.0); $('#redflash').style.transition='opacity .05s'; $('#redflash').style.opacity=.45; setTimeout(()=>{ $('#redflash').style.transition='opacity .5s'; $('#redflash').style.opacity=.15; },120);
+  setTimeout(()=>{ JS.light.intensity=0; JS.on=false; JS.root=null; gameOver(kind); },JS.delay||1000); }
+function tickJS(dt){ if(!JS.on||!JS.root) return; JS.t+=dt; const k=Math.min(1,JS.t/JS.dur); const e=k*k*(3-2*k); const d=JS.d0+(JS.d1-JS.d0)*e; // 눈앞으로 돌진
+  JS.root.position.set(P.x+JS.fx*d,JS.y,P.z+JS.fz*d); P.yaw=JS.yaw; P.pitch=JS.pitch0+(JS.pitch1-JS.pitch0)*e; if(k>=1){ JS.root.position.y=JS.y+Math.sin(JS.t*40)*0.02; } }
 
 /* 적외선 모드 : 마스크 기능. 흑백 적외선 화면 + 체온 있는 것은 하얗게 빛난다. 산소 추가 소모 없음 */
 function setNV(on){ if(NV.on===on) return; NV.on=on; $('#nv').classList.toggle('on',on); $('#nvBtn').classList.toggle('live',on); document.body.classList.toggle('ir',on); irHot(on); if(on){ AUDIO.tone(880,0.08,'sine',0.05); AUDIO.tone(1320,0.1,'sine',0.04); } else AUDIO.tone(440,0.08,'sine',0.04); }
@@ -5605,7 +5608,7 @@ function frame(now){ requestAnimationFrame(frame); const dtReal=Math.min(1,(now-
     R1.corrFix.forEach((f,i)=>{ const fl=(Math.sin(S.t*23+i*7)>0.85||Math.random()<0.004)?0.05:1; f.l.intensity=0.5*fl; f.m.material.emissiveIntensity=fl; }); }
   if(R1.doorOpening){ R1.doorOpen=Math.min(1,R1.doorOpen+dtReal*0.6); R1.pivot.rotation.y=Math.PI/2+R1.doorOpen*1.75; if(R1.doorOpen>=1) R1.doorOpening=false; }
   if(S.flags.drawerOpen&&R1.drawer.position.z<-3.05){ R1.drawer.position.z=Math.min(-3.05,R1.drawer.position.z+dt*0.5); }
-  tickDoors(dtReal); tickCreature(dt); tickLocker(dtReal); tickLabWing(dt); tickChase(dt); tickO2(dtReal); tickBase(dt); tickWalkers(dt); tickEscape(); tickVideo(dtReal);
+  tickDoors(dtReal); tickCreature(dt); tickLocker(dtReal); tickLabWing(dt); tickChase(dt); tickO2(dtReal); tickJS(dt); tickBase(dt); tickWalkers(dt); tickEscape(); tickVideo(dtReal);
   if(VID.on) vidRender(); else renderer.render(scene,camera);
   S.saveT=(S.saveT||0)+dt; if(S.saveT>3){ S.saveT=0; saveGame(); }
   fpsN++; fpsT+=dt; if(fpsT>1){ fps=Math.round(fpsN/fpsT); fpsN=0; fpsT=0; if(DBG.on) $('#dbg').textContent=`fps ${fps}  x ${P.x.toFixed(2)} z ${P.z.toFixed(2)} yaw ${P.yaw.toFixed(2)}  calls ${renderer.info.render.calls} tris ${renderer.info.render.triangles}\nflags ${JSON.stringify(S.flags)}`; } }
